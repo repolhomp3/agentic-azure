@@ -1,0 +1,83 @@
+registry: "your-registry"  # Update with your ACR registry
+
+services:
+  agentCore:
+    image: agent-core:latest
+    port: 8000
+    replicas: 2
+  
+  azureMcp:
+    image: azure-mcp:latest
+    port: 8000
+    replicas: 1
+  
+  databaseMcp:
+    image: database-mcp:latest
+    port: 8000
+    replicas: 1
+  
+  customMcp:
+    image: custom-mcp:latest
+    port: 8000
+    replicas: 1
+  
+  k8sMcp:
+    image: k8s-mcp:latest
+    port: 8000
+    replicas: 1
+  
+  frontend:
+    image: agentic-frontend:latest
+    port: 80
+    replicas: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Azure-specific configuration
+azure:
+  workloadIdentity:
+    enabled: true
+    clientId: ""  # Will be set during deployment
+  
+  resourceGroup: ""  # Will be set during deployment
+  subscriptionId: ""  # Set manually if needed
+  
+  openai:
+    endpoint: ""  # Set your Azure OpenAI endpoint
+    apiKey: ""    # Set your Azure OpenAI API key
+  
+  storage:
+    accountName: ""  # Will be set during deployment
+  
+  dataFactory:
+    name: ""  # Set your Data Factory name
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    namespace: monitoring
+  metrics:
+    port: 9090
+    path: /metrics
+
+ingress:
+  enabled: true
+  className: azure/application-gateway
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+          service: agentic-frontend-service
+        - path: /api
+          pathType: Prefix
+          service: agent-core-service

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azure-mcp
+  labels:
+    app: azure-mcp
+spec:
+  replicas: {{ .Values.services.azureMcp.replicas }}
+  selector:
+    matchLabels:
+      app: azure-mcp
+  template:
+    metadata:
+      labels:
+        app: azure-mcp
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: agentic-service-account
+      containers:
+      - name: azure-mcp
+        image: {{ .Values.registry }}/{{ .Values.services.azureMcp.image }}
+        ports:
+        - containerPort: {{ .Values.services.azureMcp.port }}
+        env:
+        - name: AZURE_CLIENT_ID
+          value: {{ .Values.azure.workloadIdentity.clientId | quote }}
+        - name: AZURE_SUBSCRIPTION_ID
+          value: {{ .Values.azure.subscriptionId | quote }}
+        - name: AZURE_RESOURCE_GROUP
+          value: {{ .Values.azure.resourceGroup | quote }}
+        - name: AZURE_OPENAI_ENDPOINT
+          value: {{ .Values.azure.openai.endpoint | quote }}
+        - name: AZURE_OPENAI_API_KEY
+          value: {{ .Values.azure.openai.apiKey | quote }}
+        - name: AZURE_STORAGE_ACCOUNT_NAME
+          value: {{ .Values.azure.storage.accountName | quote }}
+        - name: AZURE_TENANT_ID
+          valueFrom:
+            secretKeyRef:
+              name: azure-workload-identity-token
+              key: azure.workload.identity/tenant-id
+              optional: true
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.services.azureMcp.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.services.azureMcp.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azure-mcp-service
+  labels:
+    app: azure-mcp
+spec:
+  selector:
+    app: azure-mcp
+  ports:
+  - port: 80
+    targetPort: {{ .Values.services.azureMcp.port }}
+    protocol: TCP
+  type: ClusterIP

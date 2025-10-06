@@ -1,0 +1,4 @@
+openai==1.54.3
+requests==2.31.0
+azure-identity==1.15.0
+azure-storage-blob==12.19.0

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Workflows Dashboard - Azure Edition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card h3 { color: #333; margin-bottom: 15px; font-size: 1.3em; }
+        .btn { background: #0078d4; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 5px; transition: all 0.3s; }
+        .btn:hover { background: #106ebe; transform: translateY(-1px); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        .input { width: 100%; padding: 10px; border: 2px solid #e1e5e9; border-radius: 6px; margin: 5px 0; font-size: 14px; }
+        .output { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; margin-top: 15px; font-family: 'Monaco', 'Consolas', monospace; font-size: 13px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        .loading { color: #0078d4; font-style: italic; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        .workflow-section { border-left: 4px solid #0078d4; padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Agentic Workflows - Azure</h1>
+            <p>Orchestrate MCP servers with AI-powered workflows on Azure Kubernetes Service</p>
+        </div>
+
+        <div class="grid">
+            <!-- Agent Core Workflows -->
+            <div class="card workflow-section">
+                <h3>🧠 Agent Core Workflows</h3>
+                <button class="btn" onclick="testAzureOpenAI()">Test Azure OpenAI</button>
+                <button class="btn" onclick="listBlobContainers()">List Blob Containers</button>
+                <input type="text" class="input" id="customPrompt" placeholder="Enter custom prompt for Azure OpenAI...">
+                <button class="btn" onclick="customOpenAITest()">Custom OpenAI Test</button>
+                <div id="agentOutput" class="output"></div>
+            </div>
+
+            <!-- Azure Data Factory Workflows -->
+            <div class="card">
+                <h3>🔧 Azure Data Factory</h3>
+                <button class="btn" onclick="listDataFactoryPipelines()">List Pipelines</button>
+                <input type="text" class="input" id="pipelineName" placeholder="Enter pipeline name...">
+                <button class="btn" onclick="startDataFactoryPipeline()">Start Pipeline</button>
+                <div id="dataFactoryOutput" class="output"></div>
+            </div>
+
+            <!-- Weather Analysis -->
+            <div class="card">
+                <h3>🌤️ Weather Analysis</h3>
+                <input type="text" class="input" id="cityName" placeholder="Enter city name..." value="Seattle">
+                <button class="btn" onclick="analyzeWeather()">Analyze Weather</button>
+                <div id="weatherOutput" class="output"></div>
+            </div>
+
+            <!-- Database Operations -->
+            <div class="card">
+                <h3>🗄️ Database Operations</h3>
+                <button class="btn" onclick="queryDatabase()">Query Users</button>
+                <input type="text" class="input" id="customQuery" placeholder="Enter SQL query...">
+                <button class="btn" onclick="customDatabaseQuery()">Custom Query</button>
+                <div id="databaseOutput" class="output"></div>
+            </div>
+
+            <!-- Kubernetes Management -->
+            <div class="card">
+                <h3>☸️ Kubernetes Management</h3>
+                <button class="btn" onclick="getClusterStatus()">Cluster Status</button>
+                <button class="btn" onclick="listPods()">List Pods</button>
+                <input type="text" class="input" id="deploymentName" placeholder="Deployment name...">
+                <input type="number" class="input" id="replicas" placeholder="Replicas..." value="3">
+                <button class="btn" onclick="scaleDeployment()">Scale Deployment</button>
+                <div id="k8sOutput" class="output"></div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <h3>📊 System Status</h3>
+                <button class="btn" onclick="checkHealth()">Check Health</button>
+                <button class="btn" onclick="getEndpoints()">Show Endpoints</button>
+                <div id="statusOutput" class="output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const AGENT_CORE_URL = window.location.origin + '/api';
+
+        function setOutput(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `output ${type}`;
+            element.textContent = typeof content === 'object' ? JSON.stringify(content, null, 2) : content;
+        }
+
+        function setLoading(elementId) {
+            setOutput(elementId, 'Loading...', 'loading');
+        }
+
+        async function callAgentCore(method, params = {}) {
+            try {
+                const response = await fetch(AGENT_CORE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method, params })
+                });
+                return await response.json();
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        async function testAzureOpenAI() {
+            setLoading('agentOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'openai test',
+                prompt: 'Explain Azure Kubernetes Service in 50 words'
+            });
+            setOutput('agentOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function listBlobContainers() {
+            setLoading('agentOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'blob storage list'
+            });
+            setOutput('agentOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function customOpenAITest() {
+            const prompt = document.getElementById('customPrompt').value;
+            if (!prompt) {
+                setOutput('agentOutput', 'Please enter a prompt', 'error');
+                return;
+            }
+            
+            setLoading('agentOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'ai analysis',
+                prompt: prompt
+            });
+            setOutput('agentOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function listDataFactoryPipelines() {
+            setLoading('dataFactoryOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'data factory analysis'
+            });
+            setOutput('dataFactoryOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function startDataFactoryPipeline() {
+            const pipelineName = document.getElementById('pipelineName').value;
+            if (!pipelineName) {
+                setOutput('dataFactoryOutput', 'Please enter a pipeline name', 'error');
+                return;
+            }
+            
+            setLoading('dataFactoryOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'start data factory pipeline',
+                pipeline_name: pipelineName
+            });
+            setOutput('dataFactoryOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function analyzeWeather() {
+            const city = document.getElementById('cityName').value;
+            if (!city) {
+                setOutput('weatherOutput', 'Please enter a city name', 'error');
+                return;
+            }
+            
+            setLoading('weatherOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'weather analysis',
+                city: city
+            });
+            setOutput('weatherOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function queryDatabase() {
+            setLoading('databaseOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'database analysis',
+                query: 'SELECT * FROM users'
+            });
+            setOutput('databaseOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function customDatabaseQuery() {
+            const query = document.getElementById('customQuery').value;
+            if (!query) {
+                setOutput('databaseOutput', 'Please enter a SQL query', 'error');
+                return;
+            }
+            
+            setLoading('databaseOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'database analysis',
+                query: query
+            });
+            setOutput('databaseOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function getClusterStatus() {
+            setLoading('k8sOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'kubernetes status'
+            });
+            setOutput('k8sOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function listPods() {
+            setLoading('k8sOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'kubernetes pods'
+            });
+            setOutput('k8sOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function scaleDeployment() {
+            const deploymentName = document.getElementById('deploymentName').value;
+            const replicas = document.getElementById('replicas').value;
+            
+            if (!deploymentName || !replicas) {
+                setOutput('k8sOutput', 'Please enter deployment name and replicas', 'error');
+                return;
+            }
+            
+            setLoading('k8sOutput');
+            const result = await callAgentCore('workflow/execute', {
+                task: 'kubernetes scale',
+                deployment_name: deploymentName,
+                replicas: parseInt(replicas)
+            });
+            setOutput('k8sOutput', result, result.error ? 'error' : 'success');
+        }
+
+        async function checkHealth() {
+            setLoading('statusOutput');
+            try {
+                const agentHealth = await fetch(AGENT_CORE_URL.replace('/api', '') + '/health');
+                
+                const status = {
+                    agent_core: agentHealth.ok ? 'Healthy' : 'Unhealthy',
+                    note: 'MCP servers are internal - health checked through Agent Core',
+                    timestamp: new Date().toISOString()
+                };
+                
+                setOutput('statusOutput', status, 'success');
+            } catch (error) {
+                setOutput('statusOutput', { error: error.message }, 'error');
+            }
+        }
+
+        function getEndpoints() {
+            const endpoints = {
+                dashboard: window.location.href,
+                agent_core_api: AGENT_CORE_URL,
+                note: 'MCP servers use internal Kubernetes service communication'
+            };
+            setOutput('statusOutput', endpoints, 'info');
+        }
+
+        // Auto-check health on load
+        window.onload = () => {
+            checkHealth();
+        };
+    </script>
+</body>
+</html>
