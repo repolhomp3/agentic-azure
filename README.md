@@ -19,7 +19,7 @@ The Agentic Workflows Platform transforms traditional tool orchestration into **
 
 ## 🏗️ Architecture Overview
 
-![Agentic Workflows Platform - Azure Architecture](docs/agentic-azure.png)
+![Agentic Workflows Platform - Azure Architecture](agentic-azure.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
